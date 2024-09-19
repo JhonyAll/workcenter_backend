@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Users {
+  id          Int         @id @default(autoincrement())
+  nome        String      @db.VarChar(100)
+  email       String      @unique @db.VarChar(100)
+  senha       String      @db.VarChar(255)
+  tipoUsuario TipoUsuario
+  telefone    String?     @db.VarChar(20)
+  endereco    String?     @db.VarChar(255)
+  dataCriacao DateTime    @default(now()) @map("data_criacao")
+
+  // Relations
+  workers      Workers[]
+  posts        Posts[]
+  applications Applications[]
+  comments     Comments[]
+  reviews      Reviews[]
+  chatsUser    Chats[]        @relation("userComumRelation")
+  messages     Messages[]
+}
+
+model Workers {
+  id              Int     @id @default(autoincrement())
+  userId          Int
+  profissao       String  @db.VarChar(100)
+  descricao       String?
+  experiencia     Int?
+  avaliacaoMedia  Float?  @map("avaliacao_media")
+  precoHora       Float?  @map("preco_hora")
+  disponibilidade String? @db.VarChar(100)
+  fotoPerfil      String? @map("foto_perfil") @db.VarChar(255)
+
+  // Relations
+  user         Users          @relation(fields: [userId], references: [id])
+  workerPhotos WorkerPhotos[]
+  diplomas     Diplomas[]
+  applications Applications[]
+  reviews      Reviews[]
+  chats        Chats[]        @relation("workerRelation")
+}
+
+model WorkerPhotos {
+  id           Int      @id @default(autoincrement())
+  workerId     Int
+  fotoTrabalho String   @map("foto_trabalho") @db.VarChar(255)
+  descricao    String?
+  dataUpload   DateTime @default(now()) @map("data_upload")
+
+  // Relations
+  worker Workers @relation(fields: [workerId], references: [id])
+}
+
+model Diplomas {
+  id           Int     @id @default(autoincrement())
+  workerId     Int
+  titulo       String  @db.VarChar(255)
+  instituicao  String? @db.VarChar(255)
+  anoConclusao Int?    @map("ano_conclusao")
+
+  // Relations
+  worker Workers @relation(fields: [workerId], references: [id])
+}
+
+model Posts {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  titulo       String   @db.VarChar(255)
+  descricao    String
+  localizacao  String?  @db.VarChar(255)
+  dataPostagem DateTime @default(now()) @map("data_postagem")
+  status       Status   @default(ABERTO)
+
+  // Relations
+  user         Users          @relation(fields: [userId], references: [id])
+  applications Applications[]
+  comments     Comments[]
+}
+
+model Applications {
+  id              Int               @id @default(autoincrement())
+  postId          Int
+  workerId        Int
+  mensagem        String?
+  dataCandidatura DateTime          @default(now()) @map("data_candidatura")
+  status          ApplicationStatus @default(PENDENTE)
+
+  // Relations
+  post    Posts   @relation(fields: [postId], references: [id])
+  worker  Workers @relation(fields: [workerId], references: [id])
+  Users   Users?  @relation(fields: [usersId], references: [id])
+  usersId Int?
+}
+
+model Comments {
+  id             Int      @id @default(autoincrement())
+  postId         Int
+  userId         Int
+  comentario     String
+  dataComentario DateTime @default(now()) @map("data_comentario")
+
+  // Relations
+  post Posts @relation(fields: [postId], references: [id])
+  user Users @relation(fields: [userId], references: [id])
+}
+
+model Reviews {
+  id         Int      @id @default(autoincrement())
+  workerId   Int
+  userId     Int
+  avaliacao  Int      @db.Int
+  comentario String?
+  dataReview DateTime @default(now()) @map("data_review")
+
+  // Relations
+  worker Workers @relation(fields: [workerId], references: [id])
+  user   Users   @relation(fields: [userId], references: [id])
+}
+
+model Chats {
+  id          Int        @id @default(autoincrement())
+  userComumId Int
+  workerId    Int
+  dataInicio  DateTime   @default(now()) @map("data_inicio")
+  status      ChatStatus @default(ATIVO)
+
+  // Relations
+  userComum Users      @relation("userComumRelation", fields: [userComumId], references: [id])
+  worker    Workers    @relation("workerRelation", fields: [workerId], references: [id])
+  messages  Messages[]
+}
+
+model Messages {
+  id        Int      @id @default(autoincrement())
+  chatId    Int
+  userId    Int
+  mensagem  String
+  dataEnvio DateTime @default(now()) @map("data_envio")
+
+  // Relations
+  chat Chats @relation(fields: [chatId], references: [id])
+  user Users @relation(fields: [userId], references: [id])
+}
+
+// Enums
+enum TipoUsuario {
+  COMUM
+  TRABALHADOR
+}
+
+enum Status {
+  ABERTO
+  EM_PROCESSO
+  CONCLUIDO
+}
+
+enum ApplicationStatus {
+  PENDENTE
+  ACEITO
+  RECUSADO
+}
+
+enum ChatStatus {
+  ATIVO
+  FINALIZADO
+}
